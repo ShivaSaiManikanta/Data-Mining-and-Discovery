@@ -5,6 +5,7 @@ import math
 from datetime import datetime, timedelta, date
 import numpy as np
 DB_PATH = "customer_data.db"
+# Fixed seeds make the generated database reproducible.
 SEED = 20261105
 random.seed(SEED)
 np.random.seed(SEED)
@@ -36,6 +37,7 @@ LAST = [
     "Ward", "Brooks", "Kelly", "Richardson", "Cox", "Gray", "James", "Ahmed",
     "Begum", "Hussain", "Woodward", "Barnes", "Ross", "Dixon", "Pearson", "Webb"
 ]
+# Weighted names and towns avoid uniform distributions.
 LAST_W = [1/(r+1)**0.6 for r in range(len(LAST))]
 TOWNS = [("Oxford","OX"),("Birmingham","B"),("Manchester","M"),("London","E"),
          ("Leeds","LS"),("Bristol","BS"),("Cambridge","CB"),("Nottingham","NG")]
@@ -175,6 +177,7 @@ def build_database():
         return dict(first=first, last=last, town=town, postcode=postcode, joined=joined,
                     birth_year=birth_year, gender=gender, tier=tier, sat=satisfaction,
                     )
+    # Add controlled near-duplicates to practise matching customer records.
     base = [make_customer(i) for i in range(N_BASE_CUSTOMERS)]
     n_dups = int(round(N_BASE_CUSTOMERS * DUP_CUSTOMER_RATE))
     dup_sources = random.sample(range(N_BASE_CUSTOMERS), n_dups)
@@ -188,6 +191,7 @@ def build_database():
         if d["joined"] > END_DATE - timedelta(days=30):
             d["joined"] = END_DATE - timedelta(days=30)
         people.append(d)
+    # Missing values are inserted deliberately using the rates in MISSING.
     m_birth = m_sat = m_post = 0
     for i, p in enumerate(people):
         birth_year = p["birth_year"]
@@ -288,6 +292,7 @@ def build_database():
         chosen = [int(np.random.choice(n_prod, p=w / w.sum()))]
         for _ in range(basket_size - 1):
             w = base_w * avail
+            # Complementary categories create useful basket associations.
             if random.random() < 0.40:
                 w = w * (cat_arr == PARTNER_CATEGORY[products[chosen[0]][2]])
             w[chosen] = 0
@@ -324,6 +329,7 @@ def build_database():
     mean_stock = {"Low": 12, "Medium": 30, "High": 70}
     for s in STORES:
         for p in products:
+            # Some store-product pairs are absent to model sparse stock.
             if random.random() > 0.85:
                 continue
             m = mean_stock[p[4]] * (0.3 if p[5] == "Discontinued" else 1.0)
@@ -358,6 +364,7 @@ def build_database():
             n_messy += 1
             note = "Inconsistent case/whitespace in label"
         staging.append([k, random.choice(["batch_A","batch_B","batch_C"]), email, label, it[3], note])
+    # Add staging anomalies for data-cleaning practice.
     n_exact = int(len(staging) * 0.03)
     for src in random.sample(staging, n_exact):
         staging.append([len(staging) + 1, src[1], src[2], src[3], src[4], "Duplicate source fields from record %d" % src[0]])
